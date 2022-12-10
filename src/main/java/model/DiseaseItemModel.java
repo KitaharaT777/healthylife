@@ -8,14 +8,16 @@ import java.sql.Timestamp;
  */
 public class DiseaseItemModel implements Serializable {
 
-	private int id;
-	private int nameId;
-	private String nameOfDisease;
-	private String info;
-	private String link;
-	private int isDeleted;
-	private Timestamp createdAt;
-	private Timestamp updatedAt;
+	//ExportServlet内の処理でpublicにしないとエラーになるので、privateからpublicに変更
+	public int id;
+	public int nameId;
+	public String nameOfDisease;
+	public String info;
+	public String link;
+	public int isDeleted;
+	public Timestamp createdAt;
+	public Timestamp updatedAt;
+
 	private UserModel userModel;
 
 	public int getId() {
@@ -41,7 +43,7 @@ public class DiseaseItemModel implements Serializable {
 	public void setNameOfDisease(String nameOfDisease) {
 		this.nameOfDisease = nameOfDisease;
 	}
-	
+
 	public String getInfo() {
 		return this.info;
 	}
@@ -49,7 +51,7 @@ public class DiseaseItemModel implements Serializable {
 	public void setInfo(String info) {
 		this.info = info;
 	}
-	
+
 	public String getLink() {
 		return this.link;
 	}

@@ -5,10 +5,9 @@ import java.sql.SQLException;
 import java.util.List;
 
 import dao.DiseaseItemDAO;
-import dao.TodoItemDAO;
 import database.DBConnection;
 import model.DiseaseItemModel;
-import model.TodoItemModel;
+
 /**
  * 病名アイテムロジッククラス
  */
@@ -48,47 +47,11 @@ public class DiseaseItemLogic {
 	}
 
 	/**
-	 * 指定ユーザーIDの病名アイテムを全件取得します。
-	 *
-	 * @param userId ユーザーID
-	 * @return 病名アイテムモデルのArrayList
-	 * @throws SQLException
-	 * @throws ClassNotFoundException
-	 */
-	public List<DiseaseItemModel> find(int userId) throws ClassNotFoundException, SQLException {
-		try (DBConnection db = new DBConnection()) {
-			Connection conn = db.getInstance();
-			DiseaseItemDAO dao = new DiseaseItemDAO();
-
-			return dao.findByUserId(conn, userId);
-		}
-	}
-
-	/**
-	 * 指定ユーザーIDの病名アイテムを取得します。
-	 *
-	 * @param userId ユーザーID
-	 * @param limit  取得するレコード数（リミット値）
-	 * @param offset 取得開始する行数（オフセット値）
-	 * @return DiseaseItemModelのArrayList
-	 * @throws SQLException
-	 * @throws ClassNotFoundException
-	 */
-	public List<DiseaseItemModel> find(int userId, int limit, int offset) throws ClassNotFoundException, SQLException {
-		try (DBConnection db = new DBConnection()) {
-			Connection conn = db.getInstance();
-			DiseaseItemDAO dao = new DiseaseItemDAO();
-
-			return dao.findByUserId(conn, userId, limit, offset);
-		}
-	}
-
-	/**
 	 * 指定ID、指定ユーザーの病名アイテムを1件取得します
 	 *
-	 * @param id     TODOアイテムID
+	 * @param id     DiseaseアイテムID
 	 * @param userId ユーザーID
-	 * @return TODOアイテムモデル
+	 * @return Diseaseアイテムモデル
 	 * @throws SQLException
 	 * @throws ClassNotFoundException
 	 */
@@ -102,20 +65,19 @@ public class DiseaseItemLogic {
 	}
 
 	/**
-	 * 指定ユーザーIDの病名アイテムをキーワードで検索します。
+	 * 病名アイテムをキーワードで検索します。
 	 *
-	 * @param userId  ユーザーID
 	 * @param keyWord 検索キーワード
 	 * @return TODOアイテムモデルのArrayList
 	 * @throws SQLException
 	 * @throws ClassNotFoundException
 	 */
-	public List<DiseaseItemModel> find(int userId, String keyWord) throws ClassNotFoundException, SQLException {
+	public List<DiseaseItemModel> find(String keyWord) throws ClassNotFoundException, SQLException {
 		try (DBConnection db = new DBConnection()) {
 			Connection conn = db.getInstance();
 			DiseaseItemDAO dao = new DiseaseItemDAO();
 
-			return dao.findByKeyWord(conn, userId, keyWord);
+			return dao.findByKeyWord(conn, keyWord);
 		}
 	}
 
@@ -127,10 +89,10 @@ public class DiseaseItemLogic {
 	 * @throws SQLException
 	 * @throws ClassNotFoundException
 	 */
-	public boolean update(TodoItemModel model) throws ClassNotFoundException, SQLException {
+	public boolean update(DiseaseItemModel model) throws ClassNotFoundException, SQLException {
 		try (DBConnection db = new DBConnection()) {
 			Connection conn = db.getInstance();
-			TodoItemDAO dao = new TodoItemDAO();
+			DiseaseItemDAO dao = new DiseaseItemDAO();
 
 			return dao.update(conn, model);
 		}

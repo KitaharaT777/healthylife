@@ -45,6 +45,37 @@ public class UserLogic {
 	}
 
 	/**
+	 * キーワードのユーザーを取得します。
+	 * @return 検索結果（ユーザーモデルのリスト）
+	 * @throws SQLException
+	 * @throws ClassNotFoundException
+	 */
+	public List<UserModel> find(String keyWord) throws ClassNotFoundException, SQLException {
+		try (DBConnection db = new DBConnection()) {
+			Connection conn = db.getInstance();
+			UserDAO dao = new UserDAO();
+
+			return dao.findByKeyWord(conn, keyWord);
+		}
+	}
+
+	/**
+	 * Usersテーブルの最大IDを取得します。
+	 * @return Usersテーブルの最大ID
+	 * @throws SQLException
+	 * @throws ClassNotFoundException
+	 */
+
+	public int maxID() throws ClassNotFoundException, SQLException {
+		try (DBConnection db = new DBConnection()) {
+			Connection conn = db.getInstance();
+			UserDAO dao = new UserDAO();
+
+			return dao.maxID(conn);
+		}
+	}
+
+	/**
 	 * 指定ユーザーIDのユーザーを取得します。
 	 * @param userId ユーザーID
 	 * @return 検索結果（ユーザーモデル）
@@ -80,16 +111,32 @@ public class UserLogic {
 	/**
 	 * 指定ユーザーIDのユーザーを1件更新します。
 	 * @param model ユーザーモデル
-	 * @return 実行結果 1:成功、0:失敗、その他:エラーコード
+	 * @return 結果（true:成功、false:失敗）
 	 * @throws SQLException
 	 * @throws ClassNotFoundException
 	 */
-	public int update(UserModel model) throws ClassNotFoundException, SQLException {
+	public boolean update(UserModel model) throws ClassNotFoundException, SQLException {
 		try (DBConnection db = new DBConnection()) {
 			Connection conn = db.getInstance();
 			UserDAO dao = new UserDAO();
 
 			return dao.update(conn, model);
+		}
+	}
+
+	/**
+	 * 指定ユーザーIDのユーザーを1件更新します。(退会フラグ)
+	 * @param model ユーザーモデル
+	 * @return 結果（true:成功、false:失敗）
+	 * @throws SQLException
+	 * @throws ClassNotFoundException
+	 */
+	public boolean updateIsWithdrawaled(UserModel model) throws ClassNotFoundException, SQLException {
+		try (DBConnection db = new DBConnection()) {
+			Connection conn = db.getInstance();
+			UserDAO dao = new UserDAO();
+
+			return dao.updateIsWithdrawaled(conn, model);
 		}
 	}
 }

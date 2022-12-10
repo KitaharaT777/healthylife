@@ -2,7 +2,9 @@ package servlet;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
@@ -12,13 +14,14 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
+import logic.DiseaseItemLogic;
 import logic.SearchItemLogic;
-import model.GetListLogic;
+import model.DiseaseItemModel;
 import model.SearchItemModel;
-import model.TodoList;
-import model.TodoSearch;
 import model.UserModel;
 import settings.PageSettings;
+import validation.SearchValidation;
+
 /**
  * Servlet implementation class Login
  */
@@ -32,89 +35,92 @@ public class MainServlet extends HttpServlet {
 	public MainServlet() {
 		super();
 	}
-	
-	
+
 	/**
 	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
 	 */
-	
-	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {		
+
+	protected void doGet(HttpServletRequest request, HttpServletResponse response)
+			throws ServletException, IOException {
 		try {
-			
 			// 検索履歴リストを取得する。
 			SearchItemLogic logic;
 			logic = new SearchItemLogic();
-		
-		//セッションスコープからインスタンスを取得
-		HttpSession session=request.getSession();
-		UserModel loginUser=(UserModel) session.getAttribute("loginUser");
-		int user_id=loginUser.getUserId();
-		//System.out.println("loginUser: "+user_id);
-		
-		//検索履歴リストを取得してリクエストスコープに保存
-		//GetListLogic getListLogic=new GetListLogic();
-		//List<TodoList> todoList=getListLogic.execute(loginUser);
-		//request.setAttribute("todoList", todoList);
-		
-		//List<SearchItemModel> searchList = logic.find();
-		List<SearchItemModel> searchList = logic.find(user_id);
-		request.setAttribute("searchList", searchList);
-		
-		//リクエストパラメータを取得
-		request.setCharacterEncoding("UTF-8");
-		
-		String todosearch=request.getParameter("todosearch");
-		//System.out.println("SearchGet: "+todosearch);
-		
-		//todosearchをセッションスコープに保存
-		TodoSearch search=new TodoSearch(todosearch);
-		//HttpSession session2=request.getSession();
-		session.setAttribute("search",search);
-		//System.out.println("SearchSession: "+search);
-		
-		System.out.println("Main.javaのdoGet");
-		
-		/*
-		//TodoをTodoリストから検索
-		TodoList todoList2=new TodoList(user_id, todosearch);
-		System.out.println("List2Get: "+todoList2);
-		
-		List<TodoList> todoList3=getListLogic.executeSearch(loginUser,todosearch);
-		System.out.println("List3Get: "+todoList3);
-		request.setAttribute("todoList", todoList3);
-		
-		//ログインしているか確認のため、セッションスコープからユーザー情報を取得
-		//HttpSession session =request.getSession();
-		//User loginUser=(User) session.getAttribute("loginUser");
-		
-		if(todosearch==null) {
-		//if(todosearch.length()==0 || todosearch==null) {
-			System.out.println("List3null");
-			todoList3=getListLogic.execute(loginUser);
-			request.setAttribute("todoList", todoList3);
-			
-			//メイン画面にフォワード
-			RequestDispatcher dispatcher = request.getRequestDispatcher("/WEB-INF/jsp/main.jsp");
-			dispatcher.forward(request, response);
-			//response.sendRedirect("./main.jsp");
-			//response.sendRedirect("/WEB-INF/jsp/main.jsp");
-		}else {
-			System.out.println("List3OK");
-			//メイン画面にフォワード
-			RequestDispatcher dispatcher = request.getRequestDispatcher("/WEB-INF/jsp/main.jsp");
-			dispatcher.forward(request, response);
-			
-			//メイン画面にリダイレクト
-			//response.sendRedirect("/WEB-INF/jsp/main.jsp");
-		}
-		*/
-		
-		//メイン画面にフォワード
-		RequestDispatcher dispatcher = request.getRequestDispatcher("/WEB-INF/jsp/main.jsp");
-		dispatcher.forward(request, response);
-		
-		return;
-		
+
+			// セッションスコープからインスタンスを取得
+			HttpSession session = request.getSession();
+			UserModel loginUser = (UserModel) session.getAttribute("loginUser");
+			int user_id = loginUser.getUserId();
+
+			// 検索履歴リストを取得してリクエストスコープに保存
+			List<SearchItemModel> searchList = null;
+
+			//リクエストパラメータを取得
+			request.setCharacterEncoding("UTF-8");
+
+			String key = request.getParameter("key");
+
+			if (request.getParameter("key") != null && key.length() != 0) {
+				// 検索キーワードがある場合。
+				// GETパラメータで日本語を受け取ると文字化けするので、server.xmlに下記を追記する。
+				// useBodyEncodingForURI="true"
+
+				// 検索テキストボックス表示用
+				request.setAttribute("key", request.getParameter("key"));
+
+				// バリデーションチェックを行う。(検索ワード)
+				SearchValidation validate = new SearchValidation(request);
+				Map<String, String> errors = validate.validate();
+
+				// バリデーションエラーがあった時
+				if (validate.hasErrors()) {
+					request.setAttribute("errors", errors);
+
+					// JSPのinputタグのvalue値の表示に使うためにリクエストパラメータをMapに保存する。
+					Map<String, String> keyword = new HashMap<String, String>();
+					keyword.put("key", key);
+					request.setAttribute("key", keyword);
+
+					// メインページ表示用のリストを取得
+					searchList = logic.find(user_id);
+					request.setAttribute("searchList", searchList);
+
+					// Diseaseリストを取得する。
+					DiseaseItemLogic logic_disease;
+					logic_disease = new DiseaseItemLogic();
+					List<DiseaseItemModel> diseaseList = logic_disease.find();
+					request.setAttribute("diseaseList", diseaseList);
+
+					// ユーザーメインページへフォワードして終了する。
+					RequestDispatcher dispatcher = request.getRequestDispatcher("/WEB-INF/jsp/main.jsp");
+					dispatcher.forward(request, response);
+
+					return;
+				}
+
+				// resultページへフォワード
+				RequestDispatcher dispatcher = request.getRequestDispatcher("/Result");
+				dispatcher.forward(request, response);
+			} else {
+				// 検索テキストボックス表示用
+				request.setAttribute("key", request.getParameter("key"));
+
+				// 検索キーワードがない場合。
+				searchList = logic.find(user_id);
+				request.setAttribute("searchList", searchList);
+
+				// Diseaseリストを取得する。
+				DiseaseItemLogic logic_disease;
+				logic_disease = new DiseaseItemLogic();
+				List<DiseaseItemModel> diseaseList = logic_disease.find();
+				request.setAttribute("diseaseList", diseaseList);
+
+				// メイン画面にフォワード
+				RequestDispatcher dispatcher = request.getRequestDispatcher("/WEB-INF/jsp/main.jsp");
+				dispatcher.forward(request, response);
+			}
+
+			return;
 		} catch (ClassNotFoundException | SQLException e) {
 			e.printStackTrace();
 
@@ -123,57 +129,95 @@ public class MainServlet extends HttpServlet {
 			dispatcher.forward(request, response);
 
 			return;
-		}	
+		}
 	}
 
-	
-	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		//セッションスコープからインスタンスを取得
-		HttpSession session=request.getSession();
-		UserModel loginUser=(UserModel) session.getAttribute("loginUser");
-		
-		//Todoリストを取得してリクエストスコープに保存
-		GetListLogic getListLogic=new GetListLogic();
-		List<TodoList> todoList=getListLogic.execute(loginUser);
-		request.setAttribute("todoList", todoList);
-		
-		//リクエストパラメータを取得
-		request.setCharacterEncoding("UTF-8");
-		
-		//今日の日付
-		String today=request.getParameter("today");
-		System.out.println("TodayMainjava: "+today);
-		
-		/*
-		//入力値チェック
-		if(text != null && text.length() != 0) {
-			
-			//セッションスコープに保存されたユーザー情報を取得
-			HttpSession session=request.getSession();
-			User loginUser=(User) session.getAttribute("loginUser");
-			*/	
-			//TodoをTodoリストに追加
-			//TodoList todoList2=new TodoList(user_id, date, date, todo);
-			//PostAddLogic postAddLogic=new PostAddLogic();
-			//postAddLogic.execute(todoList2);
-			
-			System.out.println("Main.javaのdoPost");
-		/*
-			
-		}else {
-			//エラーメッセージをリクエストスコープに保存
-			request.setAttribute("errorMsg", "つぶやきが入力されていません");
+	protected void doPost(HttpServletRequest request, HttpServletResponse response)
+			throws ServletException, IOException {
+		try {
+
+			// 検索履歴リストを取得する。
+			SearchItemLogic logic;
+			logic = new SearchItemLogic();
+
+			// セッションスコープからインスタンスを取得
+			HttpSession session = request.getSession();
+			UserModel loginUser = (UserModel) session.getAttribute("loginUser");
+			int user_id = loginUser.getUserId();
+
+			// リクエストパラメータを取得
+			request.setCharacterEncoding("UTF-8");
+
+			//「気になる」登録のチェックを取得
+			String mark = request.getParameter("new_mark");
+
+			if (mark == null) {
+				System.out.println("NoMark");
+			} else {
+				//「気になる」症状結果の更新
+				int cnt = logic.countAll();
+
+				// 選択した検索履歴を削除する（markフラグを1に更新する）
+				// リクエストパラメータを検索履歴Itemモデルに設定する。
+				SearchItemModel searchItem = new SearchItemModel();
+				searchItem.setId(cnt);
+
+				if (!logic.updateMark(searchItem)) {
+					// エラーがあったときは、Mainへフォワードする
+					request.setAttribute("searchItem", searchItem);
+					RequestDispatcher dispatcher = request.getRequestDispatcher("/WEB-INF/jsp/main.jsp");
+					dispatcher.forward(request, response);
+
+					return;
+				}
+			}
+
+			// 削除する履歴IDを取得
+			String idno = request.getParameter("idno");
+			if (idno == null) {
+				System.out.println("NotDelete");
+			} else {
+				long searchresult_id = Integer.parseInt(idno);
+
+				// 選択した検索履歴を削除する（is_Deletedフラグを1に更新する）
+				// リクエストパラメータを検索履歴Itemモデルに設定する。
+				SearchItemModel searchItem = new SearchItemModel();
+				searchItem.setId(searchresult_id);
+
+				if (!logic.update(searchItem)) {
+					// エラーがあったときは、Mainへフォワードする
+					request.setAttribute("searchItem", searchItem);
+					RequestDispatcher dispatcher = request.getRequestDispatcher("/WEB-INF/jsp/main.jsp");
+					dispatcher.forward(request, response);
+
+					return;
+				}
+			}
+
+			// 検索履歴リストを取得してリクエストスコープに保存
+			List<SearchItemModel> searchList = logic.find(user_id);
+			request.setAttribute("searchList", searchList);
+
+			// Diseaseリストを取得する。
+			DiseaseItemLogic logic_disease;
+			logic_disease = new DiseaseItemLogic();
+			List<DiseaseItemModel> diseaseList = logic_disease.find();
+			request.setAttribute("diseaseList", diseaseList);
+
+			// メイン画面にフォワード
+			RequestDispatcher dispatcher = request.getRequestDispatcher("/WEB-INF/jsp/main.jsp");
+			dispatcher.forward(request, response);
+
+			return;
+
+		} catch (ClassNotFoundException | SQLException e) {
+			e.printStackTrace();
+
+			// エラーページへフォワードする。
+			RequestDispatcher dispatcher = request.getRequestDispatcher(PageSettings.PAGE_ERROR);
+			dispatcher.forward(request, response);
+
+			return;
 		}
-		*/
-		
-		
-		//メイン画面にフォワード
-		//RequestDispatcher dispatcher = request.getRequestDispatcher("/WEB-INF/jsp/main.jsp");
-		//RequestDispatcher dispatcher = request.getRequestDispatcher("/index.jsp");
-		//dispatcher.forward(request, response);
-		
-		//メイン画面にリダイレクト
-				//response.sendRedirect("./index.jsp");
-				response.sendRedirect("/WEB-INF/jsp/main.jsp");
-	}	
+	}
 }

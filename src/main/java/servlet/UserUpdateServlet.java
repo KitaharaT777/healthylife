@@ -1,7 +1,11 @@
 package servlet;
 
 import java.io.IOException;
+import java.sql.Date;
+import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
@@ -11,179 +15,182 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
-import model.Account;
-import model.GetListLogic;
-import model.TodoList;
-import model.UpdateAccountLogic;
+import logic.SearchItemLogic;
+import logic.UserLogic;
+import model.SearchItemModel;
 import model.UserModel;
-import model.ValidationCheck;
+import settings.PageSettings;
+import validation.UserValidation;
+
 /**
  * Servlet implementation class Login
  */
 @WebServlet("/UserUpdate")
 public class UserUpdateServlet extends HttpServlet {
 	private static final long serialVersionUID = 1L;
-	
+
 	/**
 	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
 	 */
-	
-	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		
-		System.out.println("UpdateAccount.javaのdoGet");
-		
-		//ログインしているか確認のため、セッションスコープからユーザー情報を取得
-		//HttpSession session =request.getSession();
-		//User loginUser=(User) session.getAttribute("loginUser");
-		
-		//if(loginUser==null) {
-			//response.sendRedirect("/docoTsubu/");
-		//}else {
-		//フォワード
-		RequestDispatcher dispatcher = request.getRequestDispatcher("/WEB-INF/jsp/updateuser.jsp");
-		dispatcher.forward(request, response);
-			
-			//メイン画面にリダイレクト
-			//response.sendRedirect("./index.jsp");
-			//response.sendRedirect("/WEB-INF/jsp/main.jsp");
-		//}	
-	}
-	
-	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		//リクエストパラメータを取得
-		request.setCharacterEncoding("UTF-8");
-		
-		//セッションスコープからインスタンスを取得
-		HttpSession session=request.getSession();
-		UserModel loginUser=(UserModel) session.getAttribute("loginUser");
-		
-		//UpdateAccount用
-		//AccountDAO dao=new AccountDAO();
-		//Account loginUser=dao.findByLogin(login);
-		int userId=loginUser.getUserId();
-		String email=request.getParameter("usermail");
-		String pass=request.getParameter("pass");
-		String userName=request.getParameter("username");
-		//System.out.println("UserId: " +userId);
-		//System.out.println("UserName: " +userName);
-		
-		//セッションスコープのloginUserの更新
-		//loginUser=new Account(userId, email, pass, userName);
-		
-		ValidationCheck validationCheck=new ValidationCheck();
-		boolean resultPass=validationCheck.isPass(pass);
-		System.out.println("ResultPass:" +resultPass);
-		
-		boolean resultMail=validationCheck.isMail(email);
-		System.out.println("ResultMail:" +resultMail);
-				
-		//入力値チェック
-		if(email != null && email.length() != 0 
-			&& pass != null && pass.length() != 0 
-			&& userName != null && userName.length() != 0) {
-			
-			int updateflg=0;
-			System.out.println("UpdateAccount.javaのdoPost");
-			
-			if(userName.length() > 50){
-				updateflg=1;
-				
-				//エラー時の表示用
-				UserModel updateerrUser=new UserModel(email, pass, userName);
-				//HttpSession session=request.getSession();
-				session.setAttribute("updateerrUser", updateerrUser);
-				
-				System.out.println("UpdateAcount失敗(Name50_1)");
-				request.setAttribute("msgName", "ニックネームは50文字以下で入力してください。");
-				//画面にフォワード
-				RequestDispatcher dispatcher = request.getRequestDispatcher("/WEB-INF/jsp/updateuser.jsp");
-				dispatcher.forward(request, response);
-			}
-			
-			if(resultPass==false) {
-				updateflg=1;
-				
-				//エラー時の表示用
-				UserModel updateerrUser=new UserModel(email, pass, userName);
-				//HttpSession session=request.getSession();
-				session.setAttribute("updateerrUser", updateerrUser);
-				
-				System.out.println("UpdateAcount失敗(Pass_1)");
-				request.setAttribute("msgPass", "パスワードは、半角英字大文字小文字と半角英数字を取り混ぜて、8文字以上20文字以内で入力してください。");
-			
-				//画面にフォワード
-				RequestDispatcher dispatcher = request.getRequestDispatcher("/WEB-INF/jsp/updateuser.jsp");
-				dispatcher.forward(request, response);
-			}
-			
-			if(resultMail==false) {
-				updateflg=1;
-				
-				//エラー時の表示用
-				UserModel updateerrUser=new UserModel(email, pass, userName);
-				//HttpSession session=request.getSession();
-				session.setAttribute("updateerrUser", updateerrUser);
-				
-				System.out.println("UpdateAcount失敗(Mail_1)");
-				request.setAttribute("msgMail", "正しいE−mailアドレスを入力してください。");
-				
-				//画面にフォワード
-				RequestDispatcher dispatcher = request.getRequestDispatcher("/WEB-INF/jsp/updateuser.jsp");
-				dispatcher.forward(request, response);
-			}
-			
-			if(updateflg==0) {
-			//loginUserをUSERSリストに更新
-			loginUser=new UserModel(userId, email, pass, userName);
-			UpdateAccountLogic updateAccountLogic=new UpdateAccountLogic();
-			updateAccountLogic.executeUpdateAccount(loginUser);
-			
-			//更新後のセッションスコープにユーザーIDを保存
-			//HttpSession session=request.getSession();
-			//session.setAttribute("userId", userId);
-			//session.setAttribute("userName", userName);
-			session.setAttribute("loginUser", loginUser);
-			
-			
-			System.out.println("UpdateAccount.javaのdoPost成功");
-	
-		
-			//Todoリストを取得してリクエストスコープに保存（追加）
-			GetListLogic getListLogic=new GetListLogic();
-			List<TodoList> todoList=getListLogic.execute(loginUser);
-			request.setAttribute("todoList", todoList);
-		
-			//ログイン画面にリダイレクト
-			//response.sendRedirect("./login.jsp");
-			response.sendRedirect("/WEB-INF/jsp/main.jsp");
-			}
-		}else {
-			//エラー時の表示用
-			Account updateerrUser=new Account(email, pass, userName);
-			//HttpSession session=request.getSession();
-			session.setAttribute("updateerrUser", updateerrUser);
-			
-			
-			if(email.length() == 0 || resultMail==false){
-				System.out.println("UpdateAcount失敗(Mail)");
-				request.setAttribute("msgMail", "正しいE−mailアドレスを入力してください。");
-			}
-			if(pass.length() == 0 || resultPass==false){
-				System.out.println("UpdateAcount失敗(Pass)");
-				request.setAttribute("msgPass", "パスワードは、半角英字大文字小文字と半角英数字を取り混ぜて、8文字以上20文字以内で入力してください。");
-			}
-			if(userName.length() == 0){
-				System.out.println("UpdateAcount失敗(Name0)");
-				request.setAttribute("msgName", "ニックネームは必ず入力してください。");
-			}else if(userName.length() > 50){
-				System.out.println("UpdateAcount失敗(Name50)");
-				request.setAttribute("msgName", "ニックネームは50文字以下で入力してください。");
-			}
-			System.out.println("UpdateAcount失敗");
 
-			//画面にフォワード
-			RequestDispatcher dispatcher = request.getRequestDispatcher("/WEB-INF/jsp/updateuser.jsp");
+	protected void doGet(HttpServletRequest request, HttpServletResponse response)
+			throws ServletException, IOException {
+
+		// リクエストパラメータを取得
+		request.setCharacterEncoding("UTF-8");
+
+		// セッションスコープからインスタンスを取得
+		HttpSession session = request.getSession();
+		UserModel loginUser = (UserModel) session.getAttribute("loginUser");
+		int user_id = loginUser.getUserId();
+
+		if (user_id != 1) {
+			// 更新画面にフォワード
+			RequestDispatcher dispatcher = request.getRequestDispatcher("/WEB-INF/jsp/userUpdate.jsp");
 			dispatcher.forward(request, response);
+		} else {
+			// 管理者IDの場合
+			try {
+				// 指定IDのユーザー情報を取得する。
+				UserLogic logic;
+				logic = new UserLogic();
+
+				String id = request.getParameter("id");
+
+				if (id == null) {
+					// 更新画面にフォワード
+					request.setAttribute("userItem", loginUser);
+					RequestDispatcher dispatcher = request.getRequestDispatcher("/WEB-INF/jsp/userUpdate.jsp");
+					dispatcher.forward(request, response);
+
+					return;
+				} else {
+
+					// 指定ユーザーIDのユーザー情報を取得する。
+					UserModel model = logic.find(Integer.parseInt(request.getParameter("id")));
+
+					if (model == null) {
+						// ユーザーリストを取得できなかったら、Mainにリダイレクトする。
+						response.sendRedirect(request.getContextPath() + "/AdminMain");
+						return;
+					}
+
+					// 更新画面にフォワード
+					request.setAttribute("userItem", model);
+					RequestDispatcher dispatcher = request.getRequestDispatcher("/WEB-INF/jsp/userUpdate.jsp");
+					dispatcher.forward(request, response);
+
+					return;
+				}
+
+			} catch (ClassNotFoundException | SQLException e) {
+				e.printStackTrace();
+
+				// エラーページへフォワードする。
+				RequestDispatcher dispatcher = request.getRequestDispatcher(PageSettings.PAGE_ERROR);
+				dispatcher.forward(request, response);
+
+				return;
+			}
 		}
-	}	
+	}
+
+	protected void doPost(HttpServletRequest request, HttpServletResponse response)
+			throws ServletException, IOException {
+		// リクエストパラメータを取得
+		request.setCharacterEncoding("UTF-8");
+
+		// セッションスコープからインスタンスを取得
+		HttpSession session = request.getSession();
+		UserModel loginUser = (UserModel) session.getAttribute("loginUser");
+
+		// リクエストパラメータ
+		int id = loginUser.getId();
+		String userId_str = request.getParameter("userId");
+		String email = request.getParameter("usermail");
+		String pass = request.getParameter("pass");
+		String birthday = request.getParameter("birthday");
+		int sex = Integer.parseInt(request.getParameter("sex"));
+		String sex_str = request.getParameter("sex");
+
+		try {
+			// バリデーションチェックを行う。
+			UserValidation validate = new UserValidation(request);
+			Map<String, String> errors = validate.validate();
+
+			// バリデーションエラーがあった時
+			if (validate.hasErrors()) {
+				request.setAttribute("errors", errors);
+
+				// JSPのinputタグのvalue値の表示に使うためにリクエストパラメータをMapに保存する。
+				Map<String, String> user = new HashMap<String, String>();
+				user.put("userId", userId_str);
+				user.put("email", email);
+				user.put("pass", pass);
+				user.put("birthday", birthday);
+				user.put("sex", sex_str);
+				if (id == 1) {
+					request.setAttribute("userItem", user);
+				} else {
+					request.setAttribute("loginUser", user);
+				}
+
+				// ユーザー登録ページへフォワードして終了する。
+				RequestDispatcher dispatcher = request.getRequestDispatcher("/WEB-INF/jsp/userUpdate.jsp");
+				dispatcher.forward(request, response);
+
+				return;
+			}
+			// バリデーションチェック以降に変換しないとエラーになる
+			int userId = Integer.parseInt(request.getParameter("userId"));
+
+			// リクエストパラメータをユーザーモデルに設定する。
+			UserModel user = new UserModel();
+			user.setId(id);
+			user.setUserId(userId); //UserIDは規則的に付与したい
+			user.setEmail(email);
+			user.setPass(pass);
+			user.setBirthday(Date.valueOf(birthday));
+			user.setSex(sex);
+			user.setCountry("JP");
+			user.setIsAISearch(0);
+			user.setIsWithdrawaled(0);
+			user.setIsDeleted(0);
+
+			// ユーザーを更新する。
+			UserLogic logic;
+			logic = new UserLogic();
+
+			if (!logic.update(user)) {
+				// エラーがあったときは、Mainへフォワードする
+				request.setAttribute("loginUser", user);
+				RequestDispatcher dispatcher = request.getRequestDispatcher("/WEB-INF/jsp/main.jsp");
+				dispatcher.forward(request, response);
+
+				return;
+			}
+
+			// 更新後のセッションスコープにユーザーIDを保存
+			session.setAttribute("loginUser", user);
+
+			// 検索履歴リストを取得してリクエストスコープに保存（追加）
+			SearchItemLogic logicSearch;
+			logicSearch = new SearchItemLogic();
+			List<SearchItemModel> searchList = logicSearch.find(id);
+			request.setAttribute("searchList", searchList);
+
+			// メイン画面にリダイレクト
+			response.sendRedirect(request.getContextPath() + "/Main");
+			return;
+
+		} catch (ClassNotFoundException | SQLException e) {
+			e.printStackTrace();
+
+			// エラーページへフォワードする。
+			RequestDispatcher dispatcher = request.getRequestDispatcher(PageSettings.PAGE_ERROR);
+			dispatcher.forward(request, response);
+
+			return;
+		}
+	}
 }
